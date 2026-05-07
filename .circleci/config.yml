@@ -13,6 +13,12 @@ jobs:
           docker_layer_caching: true
 
       - run:
+          name: Set image tags
+          command: |
+            echo "export VERSION_TAG=v1.0.${CIRCLE_BUILD_NUM}" >> "$BASH_ENV"
+            echo "export SHA_TAG=${CIRCLE_SHA1:0:7}" >> "$BASH_ENV"
+
+      - run:
           name: Login to Docker Hub
           command: |
             echo "$DOCKERHUB_TOKEN" | docker login \
@@ -24,14 +30,24 @@ jobs:
           command: |
             docker build \
               -t "$IMAGE_NAME:latest" \
-              -t "$IMAGE_NAME:${CIRCLE_SHA1}" \
+              -t "$IMAGE_NAME:$VERSION_TAG" \
+              -t "$IMAGE_NAME:$SHA_TAG" \
               .
 
       - run:
           name: Push Docker image
           command: |
             docker push "$IMAGE_NAME:latest"
-            docker push "$IMAGE_NAME:${CIRCLE_SHA1}"
+            docker push "$IMAGE_NAME:$VERSION_TAG"
+            docker push "$IMAGE_NAME:$SHA_TAG"
+
+      - run:
+          name: Show pushed tags
+          command: |
+            echo "Pushed:"
+            echo "$IMAGE_NAME:latest"
+            echo "$IMAGE_NAME:$VERSION_TAG"
+            echo "$IMAGE_NAME:$SHA_TAG"
 
 workflows:
   build:
